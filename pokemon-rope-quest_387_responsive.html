@@ -720,9 +720,100 @@
     from{ transform:translateY(0px) scale(1); }
     to{ transform:translateY(-14px) scale(1.03); }
   }
+  /* ---------- start screen ---------- */
+  .start-screen{
+    position:fixed;
+    inset:0;
+    z-index:500;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:
+      radial-gradient(ellipse at 50% -10%, #24384a 0%, transparent 55%),
+      linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+    padding:24px;
+    text-align:center;
+  }
+  .start-screen.hidden{display:none;}
+  .start-screen-inner{max-width:440px;}
+  .start-eyebrow{
+    font-family:'Space Mono', monospace;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    font-size:11px;
+    color:var(--rope);
+    margin-bottom:10px;
+  }
+  .start-title{
+    font-family:'Bungee', sans-serif;
+    font-weight:400;
+    font-size:clamp(28px,7vw,42px);
+    margin:0 0 12px;
+    color:var(--chalk);
+    text-shadow:0 3px 0 rgba(0,0,0,.35);
+    letter-spacing:.5px;
+  }
+  .start-desc{
+    margin:0 auto 28px;
+    max-width:400px;
+    color:var(--muted);
+    font-size:14px;
+    line-height:1.6;
+  }
+  .start-mode-select{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    justify-content:center;
+    margin-bottom:18px;
+  }
+  .start-mode-btn{
+    padding:16px 32px;
+    font-size:16px;
+  }
+  .start-settings-btn{
+    margin:0 auto;
+  }
+
+  /* ---------- fullscreen re-entry button ---------- */
+  .fs-reenter-btn{
+    position:fixed;
+    top:calc(10px + env(safe-area-inset-top, 0px));
+    left:50%;
+    transform:translateX(-50%);
+    z-index:600;
+    display:none;
+    align-items:center;
+    gap:6px;
+    padding:8px 18px;
+    border-radius:999px;
+    border:1px solid var(--panel-border);
+    background:rgba(23,34,45,.94);
+    color:var(--chalk);
+    font-family:'Rubik', sans-serif;
+    font-weight:600;
+    font-size:12.5px;
+    cursor:pointer;
+    box-shadow:0 8px 24px -8px rgba(0,0,0,.6);
+  }
+  .fs-reenter-btn.show{display:flex;}
+  .fs-reenter-btn:hover{border-color:var(--rope);}
 </style>
 </head>
 <body>
+<button id="fsReenterBtn" class="fs-reenter-btn" type="button">⛶ 全螢幕遊玩</button>
+<div id="startScreen" class="start-screen">
+  <div class="start-screen-inner">
+    <div class="start-eyebrow">Pokémon Rope Quest · Gen 1-3</div>
+    <h1 class="start-title">寶可夢攀繩大冒險</h1>
+    <p class="start-desc">跟著繩子往上爬，收服 3 隻屬性都不同的寶可夢，最後挑戰頭目！選好難度就開始吧。</p>
+    <div class="start-mode-select">
+      <button class="mode-btn start-mode-btn" data-mode="normal" type="button">🙂 一般模式</button>
+      <button class="mode-btn start-mode-btn" data-mode="hard" type="button">🔥 困難模式</button>
+    </div>
+    <button class="settings-btn start-settings-btn" id="startSettingsBtn" type="button">⚙️ 困難設定</button>
+  </div>
+</div>
 <div class="app">
   <header>
     <div class="eyebrow">Pokémon Rope Quest · Gen 1-3</div>
@@ -1889,6 +1980,48 @@
   updateModeButtons();
 
   resetCampaign();
+
+  /* ---------- start screen + fullscreen ---------- */
+  const startScreenEl = document.getElementById('startScreen');
+  const fsReenterBtn = document.getElementById('fsReenterBtn');
+  const startSettingsBtnEl = document.getElementById('startSettingsBtn');
+  const isTouchDevice = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+  let gameStarted = false;
+
+  function isFullscreen(){
+    return !!(document.fullscreenElement || document.webkitFullscreenElement ||
+      document.webkitCurrentFullScreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+  }
+  function requestFS(){
+    const el = document.documentElement;
+    const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.webkitRequestFullScreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+    if(!fn) return;
+    try{
+      const res = fn.call(el);
+      if(res && res.catch) res.catch(()=>{});
+    }catch(e){}
+  }
+  function handleFSChange(){
+    if(!gameStarted || !isTouchDevice) return;
+    fsReenterBtn.classList.toggle('show', !isFullscreen());
+  }
+  ['fullscreenchange','webkitfullscreenchange','mozfullscreenchange','MSFullscreenChange'].forEach(ev=>{
+    document.addEventListener(ev, handleFSChange);
+  });
+  fsReenterBtn.addEventListener('click', ()=>{
+    requestFS();
+    fsReenterBtn.classList.remove('show');
+  });
+
+  startScreenEl.querySelectorAll('.start-mode-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      setMode(btn.dataset.mode);
+      startScreenEl.classList.add('hidden');
+      gameStarted = true;
+      if(isTouchDevice) requestFS();
+    });
+  });
+  if(startSettingsBtnEl) startSettingsBtnEl.addEventListener('click', openSettings);
 })();
 </script>
 </body>
