@@ -180,6 +180,9 @@
     border-radius:18px;
     padding:18px 14px 22px;
     box-shadow:0 20px 50px -20px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.03);
+    display:flex;
+    flex-direction:column;
+    gap:16px;
   }
   .board-scroll{
     display:flex;
@@ -251,7 +254,7 @@
     flex-direction:column;
     gap:16px;
   }
-  .panel h2{
+  .panel h2, .board-card h2{
     font-family:'Bungee', sans-serif;
     font-weight:400;
     font-size:14px;
@@ -834,6 +837,11 @@
       <div class="board-scroll">
         <svg id="maze" viewBox="0 0 660 500" xmlns="http://www.w3.org/2000/svg"></svg>
       </div>
+
+      <div>
+        <h2>選擇起點</h2>
+        <div class="start-picker" id="startPicker"></div>
+      </div>
     </div>
 
     <div class="panel">
@@ -842,7 +850,7 @@
         <div class="boss-card" id="bossCard"></div>
       </div>
 
-      <div>
+      <div id="teamSection">
         <h2>我的隊伍</h2>
         <div class="team-panel" id="teamPanel"></div>
       </div>
@@ -855,11 +863,6 @@
       <div class="stats">
         <div>本關嘗試<b id="statAttempts">0</b></div>
         <div>已收服<b id="statCaught">0 / 3</b></div>
-      </div>
-
-      <div>
-        <h2>選擇起點</h2>
-        <div class="start-picker" id="startPicker"></div>
       </div>
 
       <button class="primary-btn" id="climbBtn" disabled>開始攀爬</button>
@@ -1207,6 +1210,7 @@
   const banner = document.getElementById('banner');
   const roundbarEl = document.getElementById('roundbar');
   const teamPanelEl = document.getElementById('teamPanel');
+  const teamSectionEl = document.getElementById('teamSection');
   const bossSection = document.getElementById('bossSection');
   const bossCardEl = document.getElementById('bossCard');
   const sendSection = document.getElementById('sendSection');
@@ -1388,11 +1392,22 @@
     if(climbing) return;
     selectedStart = c;
     updateSelectionUI();
-    // Mobile UX: automatically bring the "開始攀爬" button into view so the
-    // player doesn't have to manually scroll down after tapping a start
-    // point on the maze itself.
+    scrollToNextStep();
+  }
+
+  // Mobile UX: after picking a start point (and, in a boss round, after
+  // picking a team member), automatically bring the next thing the player
+  // needs to do into view, so they don't have to manually scroll.
+  // Boss round, no Pokémon chosen yet -> scroll to the team panel first.
+  // Otherwise -> scroll to the "開始攀爬" button.
+  function scrollToNextStep(){
+    const needsTeam = ROUNDS[roundIndex] && ROUNDS[roundIndex].type === 'boss' && !bossJustWon;
     requestAnimationFrame(()=>{
-      climbBtn.scrollIntoView({behavior:'smooth', block:'center'});
+      if(needsTeam && selectedTeamIndex===null){
+        teamSectionEl.scrollIntoView({behavior:'smooth', block:'center'});
+      } else {
+        climbBtn.scrollIntoView({behavior:'smooth', block:'center'});
+      }
     });
   }
 
@@ -1460,6 +1475,7 @@
             renderTeamPanel();
             renderSendPicker();
             updateSelectionUI();
+            scrollToNextStep();
           });
         }
       } else {
@@ -1493,6 +1509,7 @@
         renderSendPicker();
         renderTeamPanel();
         updateSelectionUI();
+        scrollToNextStep();
       });
       sendPickerEl.appendChild(card);
     });
